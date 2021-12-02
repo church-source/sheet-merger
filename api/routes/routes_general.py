@@ -26,38 +26,46 @@ def get_sheet(sheet_type):
         token = authorize_and_get_token()
 
         codes = request.args.getlist('code')
+        friendly = request.args.get("friendly")
+        two_page_friendly = True
+        if friendly == 'false':
+            two_page_friendly = False
 
-        mergeFile = PyPDF2.PdfFileMerger(strict=False)#
+        merge_file = PyPDF2.PdfFileMerger(strict=False)#
         pdf_merged_buffer = io.BytesIO()
 
         total_pages = 0
         current_sheet = 0
+        sheet_name = sheet_type+"book_"
         for code in codes:
             if bool(codeRegex.match(str(code))) == False:
                 return "Invalid Book Type", 400
+            sheet_name = sheet_name + code
             pdfdoc_remote = get_pdf_for_code(code, sheet_type, token)
-            mergeFile.append(pdfdoc_remote)
+            merge_file.append(pdfdoc_remote)
             total_pages += pdfdoc_remote.numPages
-            if total_pages % 2 != 0 and current_sheet != (len(codes)-1):
+            if two_page_friendly and (total_pages % 2 != 0 and current_sheet != (len(codes)-1)):
                 # current sheet starts at 1. so
                 len_of_next_sheet = get_pdf_for_code(codes[current_sheet+1], sheet_type, token).numPages
                 if len_of_next_sheet != 1:
                     blank_pdf = PyPDF2.PdfFileReader("blank.pdf")
                     if blank_pdf:
-                        mergeFile.append(blank_pdf)
+                        merge_file.append(blank_pdf)
                         print ('adding blank page')
                         total_pages += 1
 
             current_sheet += 1
             print(pdfdoc_remote.numPages)
 
-        mergeFile.write(pdf_merged_buffer)
+        merge_file.write(pdf_merged_buffer)
         response = make_response(pdf_merged_buffer.getvalue())
         # Set headers so web-browser knows to render results as PDF
+        if two_page_friendly:
+            sheet_name = sheet_name + "_friendly"
         response.headers['Content-Type'] = 'application/pdf'
         response.headers['mimetype'] = 'application/pdf'
         response.headers['Content-Disposition'] = \
-            'filename=%s.pdf' % 'songbook'
+            'filename=%s.pdf' % sheet_name
         return response
 
 
