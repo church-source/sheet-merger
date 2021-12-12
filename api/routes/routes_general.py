@@ -83,9 +83,14 @@ def get_sheet(sheet_type):
             current_sheet += 1
             print(pdfdoc_remote.numPages)
 
-        result_pdf = open(app.config['SONGBOOK_TMP_DIR'] + sheet_name + ".pdf", 'wb')
-        merge_file.write(result_pdf)
-        result_pdf.close()
+        try:
+            result_pdf = open(app.config['SONGBOOK_TMP_DIR'] + sheet_name + ".pdf", 'wb')
+            merge_file.write(result_pdf)
+            result_pdf.close()
+        except Exception as e:
+            print(e)
+            # do nothing
+            print("error trying to save songbook to cache")
 
         merge_file.write(pdf_merged_buffer)
         response = make_response(pdf_merged_buffer.getvalue())
