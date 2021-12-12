@@ -11,6 +11,7 @@ import json
 import time
 import PyPDF2
 from flask import make_response
+from flask import send_file
 import io
 
 route_path_general = Blueprint("route_path_general", __name__)
@@ -23,7 +24,6 @@ def get_sheet(sheet_type):
     if bool(sheetTypeRegex.match(str(sheet_type))) == False:
         return "Invalid Book Type", 400
     else:
-        token = authorize_and_get_token()
 
         codes = request.args.getlist('code')
         friendly = request.args.get("friendly")
@@ -31,16 +31,41 @@ def get_sheet(sheet_type):
         if friendly == 'false':
             two_page_friendly = False
 
-        merge_file = PyPDF2.PdfFileMerger(strict=False)#
+        reload = request.args.get("reload")
+        force_reload = False
+        if reload == 'true':
+            force_reload = True
+
+        merge_file = PyPDF2.PdfFileMerger(strict=False)
         pdf_merged_buffer = io.BytesIO()
 
         total_pages = 0
         current_sheet = 0
+
         sheet_name = sheet_type+"book_"
         for code in codes:
             if bool(codeRegex.match(str(code))) == False:
-                return "Invalid Book Type", 400
+                return "Invalid Song Code", 400
             sheet_name = sheet_name + code
+        if two_page_friendly:
+            sheet_name = sheet_name + "_friendly"
+
+
+        if force_reload is False:
+            try:
+                existing_pdf = open(app.config['SONGBOOK_TMP_DIR'] + sheet_name + ".pdf", 'rb')
+                if existing_pdf is not None:
+                    return send_file(app.config['SONGBOOK_TMP_DIR'] + sheet_name + ".pdf",
+                                     attachment_filename=sheet_name + ".pdf")
+            except:
+                # do nothing
+                print("error trying to read from songbook cache")
+
+        token = authorize_and_get_token()
+        for code in codes:
+            if bool(codeRegex.match(str(code))) == False:
+                return "Invalid Song Code", 400
+
             pdfdoc_remote = get_pdf_for_code(code, sheet_type, token)
             merge_file.append(pdfdoc_remote)
             total_pages += pdfdoc_remote.numPages
@@ -57,11 +82,14 @@ def get_sheet(sheet_type):
             current_sheet += 1
             print(pdfdoc_remote.numPages)
 
+        result_pdf = open('./temp/' + sheet_name + ".pdf", 'wb')
+        merge_file.write(result_pdf)
+        result_pdf.close()
+
         merge_file.write(pdf_merged_buffer)
         response = make_response(pdf_merged_buffer.getvalue())
+
         # Set headers so web-browser knows to render results as PDF
-        if two_page_friendly:
-            sheet_name = sheet_name + "_friendly"
         response.headers['Content-Type'] = 'application/pdf'
         response.headers['mimetype'] = 'application/pdf'
         response.headers['Content-Disposition'] = \

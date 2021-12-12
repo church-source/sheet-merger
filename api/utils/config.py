@@ -20,6 +20,10 @@ class Config(object):
     if environ.get('CHURCH_API_PASSWORD'):
         CHURCH_API_PASSWORD = environ.get('CHURCH_API_PASSWORD')
 
+    SONGBOOK_TMP_DIR = "./temp"
+    if environ.get('SONGBOOK_TMP_DIR'):
+        SONGBOOK_TMP_DIR = environ.get('SONGBOOK_TMP_DIR')
+
 class ProductionConfig(Config):
     SQLALCHEMY_DATABASE_URI = "sqlite://"
 
