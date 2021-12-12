@@ -57,7 +57,8 @@ def get_sheet(sheet_type):
                 if existing_pdf is not None:
                     return send_file(app.config['SONGBOOK_TMP_DIR'] + sheet_name + ".pdf",
                                      attachment_filename=sheet_name + ".pdf")
-            except:
+            except Exception as e:
+                print(e)
                 # do nothing
                 print("error trying to read from songbook cache")
 
