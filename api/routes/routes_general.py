@@ -83,7 +83,7 @@ def get_sheet(sheet_type):
             current_sheet += 1
             print(pdfdoc_remote.numPages)
 
-        result_pdf = open('./temp/' + sheet_name + ".pdf", 'wb')
+        result_pdf = open(app.config['SONGBOOK_TMP_DIR'] + sheet_name + ".pdf", 'wb')
         merge_file.write(result_pdf)
         result_pdf.close()
 
